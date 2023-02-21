@@ -14,10 +14,16 @@ headers = {
               'application/signed-exchange;v=b3;q=0.9'
 }
 
-response = requests.get('https://www.ximalaya.com/album/9723091', headers=headers)
-# print(response.text)
+response = requests.session().get('https://www.ximalaya.com/xiangsheng/9723091', headers=headers)
 selector = parsel.Selector(response.text)
-print(selector.xpath('//ul/li[@class="_nO"]'))
+sound_list = selector.xpath('//ul/li[@class="Mi_"]')
+for item in sound_list:
+    title = item.xpath('./div[@class="text Mi_"]/a/@title').get()
+    href = item.xpath('./div[@class="text Mi_"]/a/@href').get()
+    print(title, href)
+    # print(content.xpath('./a/@title'))
+# print(len(list))
+# print(selector.xpath('//ul/li))
 # for ul_item in ul_list:
 #     ul_a = ul_item.xpath('./ul')
 #     print(ul_a)

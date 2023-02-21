@@ -53,7 +53,7 @@ print(result_href)
 # 一般在实际工作中，比较常用的一种方式是使用css选择器先获取大的数据，
 # 在使用xpath去进行分析每一项的数据，最后如果需要仅获取里面的数值可以加上正则表达式进行获取
 
-with open('demo.html') as file:
+with open('../html/demo.html') as file:
     content = file.read()
 
 selector = parsel.Selector(content)
@@ -141,7 +141,7 @@ for item in content:
         print('movie_author:' + author)
         print('movie_rating_nums:' + rating_num)
 
-with open('demo2.html', 'r', encoding='utf-8') as file:
+with open('../html/demo2.html', 'r', encoding='utf-8') as file:
     content = file.read()
 
 selector = parsel.Selector(content)
