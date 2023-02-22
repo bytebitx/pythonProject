@@ -1,6 +1,8 @@
 import hashlib
 import os
 import pprint
+import re
+from multiprocessing.dummy import Pool
 
 import requests
 
@@ -18,16 +20,54 @@ headers = {
 }
 data = 'action=getvideos&vtype=3026&pageindex=1&pagesize=12&tags=全部&sortindex=1'.encode('utf-8')
 
-response = requests.post(url, data=data, json=None, headers=headers)
+url_list = []
+name_list = []
+
+for page in range(1, 5):
+    params = f'action=getvideos&vtype=3026&pageindex={page}&pagesize=12&tags=全部&sortindex=1'
+    data = params.encode('utf-8')
+    response = requests.post(url, data=data, json=None, headers=headers)
+    # pprint.pprint(response.json())
+
+    video_list = response.json()['videos']
+    for video in video_list:
+        title = video['title']
+        download_url = video['downvurl']
+        match_obj_1 = re.search(r'JUL', title, re.M | re.I)
+        match_obj_2 = re.search(r'ADN', title, re.M | re.I)
+        if match_obj_1:
+            name_list.append(title)
+            url_list.append(f'https://xunlei.grr4d46c.com/changpian{download_url}')
+            continue
+        if match_obj_2:
+            name_list.append(title)
+            url_list.append(f'https://xunlei.grr4d46c.com/changpian{download_url}')
+            continue
+
+dir_path = os.getcwd() + '/videos/'
+if not os.path.exists(dir_path):
+    os.mkdir(dir_path)
 
 
-url = response.json()['videos'][0]['downvurl']
-title = response.json()['videos'][0]['title']
-pprint.pprint(response.json())
-print((title, url))
+def downloadVideo(down_url):
+    down_response = requests.get(down_url, stream=True)
+    if down_response.status_code == 200:
+        name = down_url.split('/')[-1]
+        print('正在下载：' + name)
+        # name = hashlib.md5(download_url.encode(encoding='utf-8')).hexdigest()
+        with open(dir_path + name, 'wb') as file:
+            for chunk in down_response.iter_content(chunk_size=512):
+                if chunk:
+                    file.write(chunk)
 
-# dir_path = os.getcwd() + '/videos/'
-#
+
+pool = Pool(5)
+pool.map(downloadVideo, url_list)
+# url = response.json()['videos'][0]['downvurl']
+# title = response.json()['videos'][0]['title']
+# pprint.pprint(response.json())
+# print((title, url))
+
 # download_url = 'https://xunlei.grr4d46c.com/changpian' + url
 #
 # response = requests.get(download_url, stream=True)
