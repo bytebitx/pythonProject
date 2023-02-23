@@ -101,8 +101,7 @@ async def downloadVideo(down_url, semaphore):
                         print(name + ' 文件已存在')
                         return
                     else:
-                        pass
-                        # print('正在下载：' + name)
+                        print('正在下载：' + name)
                     with open(dir_path + name, 'wb') as file:
                         async for chunk in down_response.content.iter_chunked(1024):
                             file.write(chunk)
