@@ -2,51 +2,46 @@ import asyncio
 import time
 
 
-async def test():
-    print('hello')
+async def request(url):
+    print(f'正在请求的url{url}')
+    print(f'{url}请求成功')
+    # return url
 
-c = test()
+c = request('www.google.com')
+
 print(c)
 print(type(c))
+
+# loop = asyncio.new_event_loop()
+# loop.run_until_complete(c)
+
+def callback_func(task):
+    print(task.result())
+
+
 loop = asyncio.new_event_loop()
-task = asyncio.ensure_future(test(), loop=loop)
+task = asyncio.ensure_future(c, loop=loop)
+task.add_done_callback(callback_func)
 loop.run_until_complete(task)
-# loop.run_until_complete(asyncio.wait(task))
-# TypeError: expect a list of futures, not Task
 
-def running():
-    async def test1():
-        print('test1')
-        await test2()
-        print('test2')
-    async def test2():
-        print('3')
-        print('4')
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(test1())
+async def request_url(url):
+    print(f'正在请求：{url}')
+    # 在异步协程中不能出现同步代码块，否则无法实现异步
+    # time.sleep(2)
+    # 在异步协程中，遇到耗时操作必须手动挂起
+    await asyncio.sleep(2)
+    print(f'{url}请求完成')
 
-if __name__ == '__main__':
-    running()
-
-
-async def func(url):
-    print(f'正在请求{url}')
-
-# func('www.google.com')
-# coroutine 'test' was never awaited
-
-async def do_some_work(n):
-    print(f'waiting {n} 秒')
-    # await asyncio.sleep(2)
-    time.sleep(n)
-    return '{}秒后返回结束运行'.format(n)
+urls = [
+    'www.google.com',
+    'www.weibo.sina.cn',
+    'www.tencent.com'
+]
 
 start_time = time.time()
-
-c = do_some_work(2)
+print('start time ', start_time)
 loop = asyncio.new_event_loop()
-f = asyncio.ensure_future(c, loop=loop)
-loop.run_until_complete(f)
-print(f.result())
+tasks = [asyncio.ensure_future(request_url(url), loop=loop) for url in urls]
+loop.run_until_complete(asyncio.wait(tasks))
 
-print('运行时间：', time.time() - start_time)
+print('task complete time', time.time() - start_time)
