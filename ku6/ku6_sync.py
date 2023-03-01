@@ -1,6 +1,8 @@
 import asyncio
+import json
 import os
 import re
+import time
 
 import aiohttp
 import parsel
@@ -19,8 +21,6 @@ def request_index():
     selector = parsel.Selector(index_res.text)
     video_detail_list = selector.xpath('//a[@class="video-image-warp"]/@href').getall()
 
-    # print(video_detail_list)
-
     v_list = []
 
     for detail_url in video_detail_list:
@@ -32,9 +32,7 @@ def request_index():
             # print(video_url)
             # print(video_name)
             v_list.append({'url': video_url, 'name': video_name})
-    # print(video_list)
-    print(type(v_list))
-    return v_list,
+    return v_list
 
 
 async def downloadVideo(down_url, name, semaphore):
@@ -54,6 +52,7 @@ async def downloadVideo(down_url, name, semaphore):
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     dir_path = os.getcwd() + '/videos/'
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
@@ -62,7 +61,8 @@ if __name__ == '__main__':
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
     video_list = request_index()
-    print(video_list)
     tasks = [asyncio.ensure_future(downloadVideo(item['url'], item['name'], semaphore), loop=loop)
-             for item in video_list[0]]
+             for item in video_list]
     loop.run_until_complete(asyncio.wait(tasks))
+    print('task end, total time:', time.time() - start_time)
+    # sync task end, total time: 933.0300421714783
