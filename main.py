@@ -1,5 +1,4 @@
 # This is a sample Python script.
-import _thread
 import json
 import operator
 import sys
@@ -7,8 +6,6 @@ import threading
 import time
 
 import requests
-
-from hello import hello
 
 # Press ⌃R to execute it or replace it with your code.
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
@@ -445,10 +442,6 @@ for i, v in enumerate(['a', 'b', 100]):
     # 0 a
     # 1 b
     # 2 100
-
-hello.printparam('world')
-# hello world
-
 
 # 在 : 后传入一个整数, 可以保证该域至少有这么多的宽度。 用于美化表格时很有用。
 table = {'Google': 1, 'Runoob': 2, 'Taobao': 3}
