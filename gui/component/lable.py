@@ -25,12 +25,23 @@ class Application(ttk.Frame):
             # 文本内容位置
             anchor='se',
             # 文本到多少宽度后换行，单位是像素
-            wraplength=100,
+            wraplength=600,
             # text内容多的时候的对齐方式
             justify='right',
         )
+        global photo
+        photo = tkinter.PhotoImage(file='../img/test.png')
+        self.lb_photo = ttk.Label(image=photo)
         self.lb.bind("<Button>", self.test)
         self.lb.pack(side=tkinter.RIGHT)
+        self.lb_photo.pack()
+
+        ttk.Label(
+            text='this is test\nthis is applition\n广东省深圳市南山区',
+            relief='solid',
+            justify='right'
+        ).pack()
+
 
 
 if __name__ == '__main__':
