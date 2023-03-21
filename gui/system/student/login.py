@@ -32,9 +32,6 @@ class Application(ttk.Frame):
         self.btn.place(relx=0.35, rely=0.75, relwidth=0.3)
         self.btn.bind("<Return>", self.login)
 
-    def createMainPage(self):
-        ttk.Label(text="信息管理系统", font=("宋体", 30))
-        pass
 
     def login(self):
         self.lb_pwd.place_forget()
@@ -51,6 +48,7 @@ class Application(ttk.Frame):
             messagebox.showerror("输入错误", "输入的密码错误")
         else:
             messagebox.showinfo("窗口", "登录成功")
+            root.destroy()
         pass
 
 
