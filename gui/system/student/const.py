@@ -1,4 +1,3 @@
 
-
 USER_NAME = 'admin'
-USER_PWD = '123456'
+USER_PWD = 'admin'
