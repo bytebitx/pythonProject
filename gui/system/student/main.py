@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, Tk, messagebox
 
-from gui.system.student import const
+from gui.system.student.add import Application as Add_UI
 
 
 class Application(ttk.Frame):
@@ -50,6 +50,8 @@ class Application(ttk.Frame):
 
     def addInfo(self, event):
         messagebox.showinfo("title", "add info")
+        self.master.destroy()
+        Add_UI.create_window()
         pass
 
     def deleteInfo(self, event):
