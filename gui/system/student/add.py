@@ -1,15 +1,20 @@
 import tkinter as tk
 from tkinter import ttk
 
+from gui.system.student.const import COLLEGE
+
 
 class Application(ttk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
         self.pack()
-        self.create_add_page()
         self.sexVar = tk.StringVar()
         self.sexVar = "男"
+        self.ageVar = tk.IntVar()
+        self.collegeVar = tk.StringVar()
+        self.collegeVar.set(COLLEGE[1])
+        self.create_add_page()
 
     def create_add_page(self):
         self.title = ttk.Label(self.master, text="添加信息", font=("宋体", 30))
@@ -37,12 +42,31 @@ class Application(ttk.Frame):
         self.sex_frame.pack()
 
         self.sex = ttk.Label(self.sex_frame, text="性别", font=("宋体", 15), anchor='center')
-        self.sex.pack(side=tk.LEFT)
+        self.sex.pack(side=tk.LEFT, pady=15)
 
         self.sex_male_radiobtn = ttk.Radiobutton(self.sex_frame, text="男", value=0)
-        self.sex_male_radiobtn.pack(side=tk.LEFT, padx=50)
+        self.sex_male_radiobtn.pack(side=tk.LEFT, padx=45)
         self.sex_female_radiobtn = ttk.Radiobutton(self.sex_frame, text="女", value=1)
-        self.sex_female_radiobtn.pack(side=tk.LEFT, padx=50)
+        self.sex_female_radiobtn.pack(side=tk.LEFT, padx=25)
+
+        self.age_frame = tk.Frame(self.master)
+        self.age_frame.pack()
+
+        self.age = ttk.Label(self.age_frame, text="年龄", font=("宋体", 15))
+        self.age.pack(side=tk.LEFT)
+
+        self.age_entry = ttk.Entry(self.age_frame, font=("宋体", 15), textvariable=self.ageVar)
+        self.age_entry.pack(side=tk.LEFT, padx=15)
+
+        self.college_frame = tk.Frame(self.master)
+        self.college_frame.pack()
+
+        self.college = ttk.Label(self.college_frame, text="学院", font=("宋体", 15))
+        self.college.pack(side=tk.LEFT, padx=15, pady=20)
+
+        self.college_menu = ttk.OptionMenu(self.college_frame, self.collegeVar, COLLEGE[1], *COLLEGE)
+        self.college_menu["width"] = 20
+        self.college_menu.pack(side=tk.LEFT, padx=15)
 
     @staticmethod
     def create_window():
