@@ -1,17 +1,38 @@
+import hashlib
 import json
+import os
 import pprint
 import re
 
+import parsel
 import requests
 
 headers = {
-    'authority': 'haokan.baidu.com',
-    'cookie': 'BIDUPSID=F2B9E50102E72EE4DB6902EE2EF00973; PSTM=1660272537; BAIDUID=F2B9E50102E72EE49286EEAF7C38D725:SL=0:NR=10:FG=1; MCITY=-340%3A; BDUSS=xTVENCSmZqfmFoUlpkNk85emZLT0E2alRsdlRYNDBEWkhqNmh3SGZjWDY0SDVqSVFBQUFBJCQAAAAAAAAAAAEAAAAOx~QgeXlzdXNlMTIzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPpTV2P6U1djcU; BDUSS_BFESS=xTVENCSmZqfmFoUlpkNk85emZLT0E2alRsdlRYNDBEWkhqNmh3SGZjWDY0SDVqSVFBQUFBJCQAAAAAAAAAAAEAAAAOx~QgeXlzdXNlMTIzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPpTV2P6U1djcU; PC_TAB_LOG=video_details_page; COMMON_LID=1fe1610709d5729660e16dfb18486acb; Hm_lvt_4aadd610dfd2f5972f1efee2653a2bc5=1677732012; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; hkpcSearch=%u7F8E%u5973; BDSFRCVID=IlLOJeC627gp-Kjf54vvUG9zQYrDEkQTH6aoBwJiZiFYhdzdPbuHEG0PnM8g0K4bigR-ogKK3gOTH4PF_2uxOjjg8UtVJeC6EG0Ptf8g0f5; H_BDCLCKID_SF=tJKf_DtKtKK3DbbwD5L_-JL3MMrXKC62aKDsaRR1BhcqEIL4jPJ2qfPqbG_J-J5P3b5EbxT-3p5OVfbSj4QoLR-pMJ600qc35TQbbnoaWp5nhMJkXj7JDMn3-xrMQDry523iob3vQpPMVhQ3DRoWXPIqbN7P-p5Z5mAqKl0MLPbtbb0xb6_0-nDSHH_8t6-j3j; BA_HECTOR=0h21810g2l25242h8405214r1i2d8ab1n; BAIDUID_BFESS=F2B9E50102E72EE49286EEAF7C38D725:SL=0:NR=10:FG=1; BDSFRCVID_BFESS=IlLOJeC627gp-Kjf54vvUG9zQYrDEkQTH6aoBwJiZiFYhdzdPbuHEG0PnM8g0K4bigR-ogKK3gOTH4PF_2uxOjjg8UtVJeC6EG0Ptf8g0f5; H_BDCLCKID_SF_BFESS=tJKf_DtKtKK3DbbwD5L_-JL3MMrXKC62aKDsaRR1BhcqEIL4jPJ2qfPqbG_J-J5P3b5EbxT-3p5OVfbSj4QoLR-pMJ600qc35TQbbnoaWp5nhMJkXj7JDMn3-xrMQDry523iob3vQpPMVhQ3DRoWXPIqbN7P-p5Z5mAqKl0MLPbtbb0xb6_0-nDSHH_8t6-j3j; delPer=0; PSINO=7; ZFY=MicpQ:BJ502C86qyTWsdiPbxttEiPrrjPz:BVWzd0ORQU:C; BDRCVFR[feWj1Vr5u3D]=I67x6TjHwwYf0; H_PS_PSSID=38185_36547_38105_38470_38344_38398_38468_38290_38486_38261_37930_38382_26350_38420_38283_37881; __bid_n=1870360724b62cab464207; FPTOKEN=p2SV07ythOZMr+5ifp3DPxEj07XejvBJnAvejWVi68nmAWBsRbdbOexjdd0ekKaZ71WGVX/KbKWOfSLjBUiIXKoKzTqmBFwwiJjSxzP7HxsmMq67OvLOqZ9Bxo/KxkK10FvBDLSogeBZEU1b1deMtPMS2aF45W/mJlaF5CeLu6UPBh/o/dOtyq1xP5wpCG3S0iIobZkVy778Tb3TvyHjjvOVNoaBWc06DhUPOUu++267L+zG66KoSUfqUlVUIgJYnIvtCiSnUUzqWtnCCPjgoIAP8l8ArUgDTIMxhy5F3aydOve6c+rCKE/xmNa1z3R/QvnAIACWGjezeSMRS+zcOeQNryIhB9ZJhz3Dbng/jU4MQDEUDkVloQZhtBJ1RqJdjvSwBpDi2s1uAgooKiB7EA==|Di30Z1jWntialVUm3kjU1FF4pOKkzaPFr2YlK/7P5Ts=|10|d97c2ac3d25a47c75b7e223b0b878e0d; hkpcvideolandquery=%u96BE%u9053%u59D0%u59D0%u4E0D%u61C2%u56DE%u623F%u95F4%u7761%u89C9%u5417%uFF1F%u975E%u8981%u8DDF%u6211%u62A2%u6C99%u53D1; ariaDefaultTheme=undefined; Hm_lpvt_4aadd610dfd2f5972f1efee2653a2bc5=1680261989; ab_sr=1.0.1_MjZiNzFjOGYyYmY1ZGVjMzA1ODE2OGNmNDRmZDZkY2RmMTAwM2I4NWMyYTc5MWE4OWVhMTgwZDZiYTJlYjM2ZTMwMWZiOTY4NGY5NTEzYWI1MmM1NjkxMGUzOTEzMjI5Mjg4NDc4ODlhMGJhMmQ4MDE5YzE5NGQ4YmY1OTQ4YzhkYTBkNTkwYWI0ODY2MzU4Njk4MTY5YWQzMzJmMzc1OQ==; reptileData=%7B%22data%22%3A%2294ade6d3b91d9b0eb397b911cb6d6d701408f160651ed879d100b895e78c2cd647f3d0db0c5d9e544a1ddf9c181ca0b054d92625bfbb644ac76fb66e88f31fa2cab871e7e1aaf6fcda75ee4cedc2cf75d035ed7668ed897778b6651f6ef20e30%22%2C%22key_id%22%3A%2230%22%2C%22sign%22%3A%224c88f915%22%7D; RT="z=1&dm=baidu.com&si=faadc3f5-61c9-4d15-bc80-ef23dcd10857&ss=lfwenbb0&sl=s&tt=rjk&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&ul=1yj3c"',
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Cache-Control': 'max-age=0',
+    'Connection': 'keep-alive',
+    'Cookie': 'Hm_lvt_6ecae4b4661639f51be579865c839753=1680272717; Hm_lvt_5f160b35156601be1a20b4e58e497ecc=1680272718; Hm_lpvt_6ecae4b4661639f51be579865c839753=1680316450; Hm_lpvt_5f160b35156601be1a20b4e58e497ecc=1680316450',
+    'Host': 'www.poco.cn',
+    'sec-ch-ua': '"Chromium";v="110", "Not A(Brand";v="24", "Google Chrome";v="110"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
 }
 
-response = requests.get("https://haokan.baidu.com/v?vid=3434663870741165269&collection_id=", headers=headers)
-pprint.pprint(response.text)
+dir_path = os.getcwd() + '/imgs/'
 
+response = requests.get("https://www.poco.cn/works/detail_id22140446", headers=headers)
+print(response.text)
 
 # print(re.search("http://v26-web.douyinvod.com", response.text).group())
+
+# slashUStr = "https:\u002F\u002Fgossv.cfp.cn\u002Fvideos\u002Fmts_videos\u002Fpreview\u002FVCG42N1364165756.mp4"
+# decodedUniChars = slashUStr.encode('utf-8').decode("unicode_escape")
+# print("decodedUniChars=", decodedUniChars)

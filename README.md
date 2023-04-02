@@ -7,6 +7,9 @@ parsel标签选择器使用方式 https://blog.csdn.net/zxctime/article/details/
 
 安装镜像：pip install parsel -i http://mirrors.aliyun.com/pypi/simple/   --trusted-host mirrors.aliyun.com
 
+python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ttkbootstrap
+
+
 
 python帮助文档
 https://docs.python.org/zh-cn/3.10/index.html
