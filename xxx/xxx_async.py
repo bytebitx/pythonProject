@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 import time
@@ -15,7 +16,7 @@ headers = {
     'accept': 'application/json, text/javascript, */*; q=0.01',
     'accept-encoding': 'gzip, deflate, br',
     'accept-language': 'zh-CN,zh;q=0.9',
-    'content-length': '87',
+    # 'content-length': '87',
     'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'cookie': 'footer_bar_sindex=1; ASP.NET_SessionId=hnxshxskrx1pnk1l2w22n0cu; Hm_lvt_9f18188cf6ca76964151d7b599951471=1680408534; Hm_lvt_7061c4deafdcbf84d71ddd292445ef38=1680408534; Hm_lpvt_7061c4deafdcbf84d71ddd292445ef38=1680408543; Hm_lpvt_9f18188cf6ca76964151d7b599951471=1680408543',
     'origin': 'https://r5vg.com',
@@ -38,14 +39,15 @@ async def fetch_page_count(time_stamp, page_size):
         fetch_url = url + str(time_stamp)
         data = "action=getvideos&vtype=3026&pageindex=1&pagesize=1&tags=%E5%85%A8%E9%83%A8&sortindex=1"
         async with aiohttp.ClientSession() as session:
-            async with session.post(url=fetch_url, headers=headers, data=data) as response:
-                content = await response.json()
+            async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
+                text_content = await response.text()
+                content = json.loads(text_content)
                 count = content['pagecount']
                 print(f'count={count}')
                 if count % page_size == 0:
-                    total_page = count / page_size
+                    total_page = round(count / page_size)
                 else:
-                    total_page = count / page_size + 1
+                    total_page = round(count / page_size) + 1
 
                 task_list = []
                 for page_no in range(1, total_page):
@@ -60,8 +62,9 @@ async def fetch_data(time_stamp, page_index, page_size):
         fetch_url = url + str(time_stamp)
         data = f"action=getvideos&vtype=3026&pageindex={page_index}&pagesize={page_size}&tags=%E5%85%A8%E9%83%A8&sortindex=1"
         async with aiohttp.ClientSession() as session:
-            async with session.post(url=fetch_url, headers=headers, data=data) as response:
-                content = await response.json()
+            async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
+                text_content = await response.text()
+                content = json.loads(text_content)
                 video_list = content['videos']
                 task_list = []
                 for video in video_list:
@@ -72,25 +75,25 @@ async def fetch_data(time_stamp, page_index, page_size):
                     vurl = video['vurl']
                     title = video['title']
                     m3u8_url = yuming + vurl
-                    print(f'm3u8_url={m3u8_url}')
+                    # print(f'm3u8_url={m3u8_url}')
                     task_list.append(asyncio.ensure_future(fetch_video_data(m3u8_url, title), loop=loop))
 
                 await asyncio.wait(task_list)
 
 
 async def fetch_video_data(m3u8_url, title):
-    async with semaphore:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url=m3u8_url) as response:
-                m3u8_data = await response.text()
-                ts_list = re.sub('#E.*', '', m3u8_data).split()
-                ts_url_prefix = m3u8_url[0:m3u8_url.rfind('/') + 1]
-                task_list = [asyncio.ensure_future(download_video(ts_url_prefix + ts, title), loop=loop) for ts in ts_list]
-                await asyncio.wait(task_list)
-
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url=m3u8_url, ssl=False) as response:
+            m3u8_data = await response.text()
+            # print(f'm3u8_data = {m3u8_data}')
+            ts_list = re.sub('#E.*', '', m3u8_data).split()
+            ts_url_prefix = m3u8_url[0:m3u8_url.rfind('/') + 1]
+            task_list = [asyncio.ensure_future(download_video(ts_url_prefix + ts, title), loop=loop)
+                         for ts in ts_list]
+            await asyncio.wait(task_list)
 
 async def download_video(ts_url, title):
-    print(f'ts_url={ts_url}')
+    # print(f'ts_url={ts_url}')
     async with aiohttp.ClientSession() as session:
         async with session.get(ts_url, ssl=False) as down_response:
             if down_response.status == 200:
