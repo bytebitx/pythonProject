@@ -13,7 +13,7 @@ base_url = 'https://www.ku6.com'
 
 async def request_detail_data(url):
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
+        async with session.get(url, ssl=False) as response:
             video_res = await response.text()
             video_url = re.search('flvURL: "(.*?)",', video_res).group(1)
             video_name = re.search('document.title = "(.*?)"', video_res).group(1)

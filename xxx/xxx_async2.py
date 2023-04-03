@@ -106,7 +106,7 @@ async def download_segment(session, ts_url, title):
                 name = title + ".mp4"
                 with open(dir_path + name, 'ab') as file:
                     while True:
-                        chunk = await down_response.content.iter_chunked(1024)
+                        chunk = await down_response.content.read(1024)
                         if not chunk:
                             break
                         file.write(chunk)
@@ -131,8 +131,8 @@ async def main():
         down_task_list = []
         for video_task in video_done:
             for key, value in video_task.result().items():
-                print(type(key))
-                print(type(value))
+                # print(type(key))
+                # print(type(value))
                 task = [asyncio.ensure_future(download_segment(session, ts_url, key), loop=loop) for ts_url in value]
                 down_task_list.extend(task)
 
