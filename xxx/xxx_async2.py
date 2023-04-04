@@ -47,15 +47,6 @@ async def fetch_page_count(session, time_stamp, page_size):
         else:
             total_page = round(count / page_size) + 1
         return total_page
-        # task_list = []
-        # for page_no in range(1, total_page):
-        #     task_list.append(
-        #         asyncio.ensure_future(fetch_data(time_stamp, page_no, page_size), loop=loop)
-        #     )
-        # done, pending = await asyncio.wait(task_list)
-        # for done_task in done:
-        #     result = done_task.result()
-        #     print(result)
 
 
 async def fetch_data(session, time_stamp, page_index, page_size):
@@ -66,7 +57,6 @@ async def fetch_data(session, time_stamp, page_index, page_size):
             text_content = await response.text()
             content = json.loads(text_content)
             video_list = content['videos']
-            # m3u8_url_list = []
             m3u8_url_dict = dict()
             for video in video_list:
                 viewcount = video['viewcount']
@@ -77,22 +67,16 @@ async def fetch_data(session, time_stamp, page_index, page_size):
                 title = video['title']
                 m3u8_url = yuming + vurl
                 m3u8_url_dict.update({title: m3u8_url})
-                # m3u8_url_list.append({title: m3u8_url})
             return m3u8_url_dict
 
 
 async def fetch_video_data(session, m3u8_url, title):
     async with session.get(url=m3u8_url, ssl=False) as response:
         m3u8_data = await response.text()
-        # print(f'm3u8_data = {m3u8_data}')
         ts_list = re.sub('#E.*', '', m3u8_data).split()
         ts_url_prefix = m3u8_url[0:m3u8_url.rfind('/') + 1]
         ts_url_list = [ts_url_prefix + ts for ts in ts_list]
         return {title: ts_url_list}
-        # ts_url_prefix = m3u8_url[0:m3u8_url.rfind('/') + 1]
-        # task_list = [asyncio.ensure_future(download_video(ts_url_prefix + ts, title), loop=loop)
-        #              for ts in ts_list]
-        # await asyncio.wait(task_list)
 
 
 async def download_segment(session, ts_url, title):

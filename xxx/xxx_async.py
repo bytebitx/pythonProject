@@ -5,7 +5,6 @@ import re
 import time
 
 import aiohttp
-import requests
 import uvloop
 
 headers = {
@@ -34,93 +33,92 @@ headers = {
 url = 'https://r5vg.com/web/abcdefg.ashx?v='
 
 
-async def fetch_page_count(time_stamp, page_size):
+async def fetch_page_count(session, time_stamp, page_size):
     async with semaphore:
         fetch_url = url + str(time_stamp)
-        data = "action=getvideos&vtype=3026&pageindex=1&pagesize=1&tags=%E5%85%A8%E9%83%A8&sortindex=1"
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
-                text_content = await response.text()
-                content = json.loads(text_content)
-                count = content['pagecount']
-                print(f'count={count}')
-                if count % page_size == 0:
-                    total_page = round(count / page_size)
-                else:
-                    total_page = round(count / page_size) + 1
+        data = f"action=getvideos&vtype=3026&pageindex=1&pagesize={page_size}&tags=%E5%85%A8%E9%83%A8&sortindex=1"
+        async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
+            text_content = await response.text()
+            content = json.loads(text_content)
+            count = content['pagecount']
+            print(f'count={count}')
+            if count % page_size == 0:
+                total_page = round(count / page_size)
+            else:
+                total_page = round(count / page_size) + 1
 
-                task_list = []
-                for page_no in range(1, total_page):
-                    task_list.append(
-                        asyncio.ensure_future(fetch_data(time_stamp, page_no, page_size), loop=loop)
-                    )
-                await asyncio.wait(task_list)
+            task_list = []
+            for page_no in range(2, 3):
+                task_list.append(
+                    asyncio.ensure_future(fetch_data(session, time_stamp, page_no, page_size), loop=loop)
+                )
+            await asyncio.wait(task_list)
 
 
-async def fetch_data(time_stamp, page_index, page_size):
+async def fetch_data(session, time_stamp, page_index, page_size):
     async with semaphore:
         fetch_url = url + str(time_stamp)
         data = f"action=getvideos&vtype=3026&pageindex={page_index}&pagesize={page_size}&tags=%E5%85%A8%E9%83%A8&sortindex=1"
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
-                text_content = await response.text()
-                content = json.loads(text_content)
-                video_list = content['videos']
-                task_list = []
-                for video in video_list:
-                    viewcount = video['viewcount']
-                    if viewcount < 400000:
-                        continue
-                    yuming = video['yuming']
-                    vurl = video['vurl']
-                    title = video['title']
-                    m3u8_url = yuming + vurl
-                    # print(f'm3u8_url={m3u8_url}')
-                    task_list.append(asyncio.ensure_future(fetch_video_data(m3u8_url, title), loop=loop))
+        async with session.post(url=fetch_url, headers=headers, data=data, ssl=False) as response:
+            text_content = await response.text()
+            content = json.loads(text_content)
+            video_list = content['videos']
+            task_list = []
+            for video in video_list:
+                viewcount = video['viewcount']
+                if viewcount < 400000:
+                    continue
+                yuming = video['yuming']
+                vurl = video['vurl']
+                title = video['title']
+                m3u8_url = yuming + vurl
+                # print(f'm3u8_url={m3u8_url}')
+                task_list.append(asyncio.ensure_future(fetch_video_data(session, m3u8_url, title), loop=loop))
 
-                await asyncio.wait(task_list)
+            await asyncio.wait(task_list)
 
 
-async def fetch_video_data(m3u8_url, title):
-    async with aiohttp.ClientSession() as session:
+async def fetch_video_data(session, m3u8_url, title):
+    async with semaphore:
         async with session.get(url=m3u8_url, ssl=False) as response:
             m3u8_data = await response.text()
             # print(f'm3u8_data = {m3u8_data}')
             ts_list = re.sub('#E.*', '', m3u8_data).split()
             ts_url_prefix = m3u8_url[0:m3u8_url.rfind('/') + 1]
-            task_list = [asyncio.ensure_future(download_video(ts_url_prefix + ts, title), loop=loop)
+            task_list = [asyncio.ensure_future(download_segment(session, ts_url_prefix + ts, title), loop=loop)
                          for ts in ts_list]
-            await asyncio.wait(task_list)
+            await asyncio.gather(*task_list)
 
-async def download_video(ts_url, title):
-    # print(f'ts_url={ts_url}')
+
+async def download_segment(session, ts_url, title):
+    async with session.get(ts_url, ssl=False) as down_response:
+        if down_response.status == 200:
+            name = title + ".mp4"
+            print('正在下载：')
+            with open(dir_path + name, 'ab') as file:
+                while True:
+                    chunk = await down_response.content.read(1024)
+                    if not chunk:
+                        break
+                    file.write(chunk)
+
+
+async def main():
     async with aiohttp.ClientSession() as session:
-        async with session.get(ts_url, ssl=False) as down_response:
-            if down_response.status == 200:
-                dir_path = os.getcwd() + '/videos/'
-                if not os.path.exists(dir_path):
-                    os.makedirs(dir_path)
-
-                name = title + ".mp4"
-                if os.path.exists(dir_path + name):
-                    print(name + ' 文件已存在')
-                    return
-                else:
-                    pass
-                    print('正在下载：' + name)
-                with open(dir_path + name, 'ab') as file:
-                    async for chunk in down_response.content.iter_chunked(1024):
-                        file.write(chunk)
-
+        time_stamp = round(time.time() * 1000)
+        page_size = 30
+        await fetch_page_count(session, time_stamp, page_size)
 
 if __name__ == '__main__':
     start_time = time.time()
-    time_stamp = round(start_time * 1000)
-    page_size = 30
+    dir_path = os.getcwd() + '/videos/'
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
     semaphore = asyncio.Semaphore(5)
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(fetch_page_count(time_stamp, page_size))
+    loop.run_until_complete(main())
     loop.close()
     print("async total time：", time.time() - start_time)
